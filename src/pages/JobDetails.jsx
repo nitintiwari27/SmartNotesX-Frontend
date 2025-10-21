@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
+
 const JobDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -18,8 +19,12 @@ const JobDetails = () => {
   const [applying, setApplying] = useState(false);
   const [hasApplied, setHasApplied] = useState(false);
   const [showApplyModal, setShowApplyModal] = useState(false);
+  
+  const [showConfirmationModal, setShowConfirmationModal] = useState(false);
   const [coverLetter, setCoverLetter] = useState('');
-console.log(job)
+  
+  console.log(job)
+  
   const fetchJob = useCallback(async () => {
     try {
       const { data } = await api.get(`/jobs/${id}`);
@@ -32,7 +37,8 @@ console.log(job)
     }
   }, [id]);
 
-    const checkApplicationStatus = useCallback(async () => {
+
+  const checkApplicationStatus = useCallback(async () => {
     try {
       const { data } = await api.get('/jobs/user/my-applications');
       const applied = data.data.some(app => app.job._id === id);
@@ -42,6 +48,7 @@ console.log(job)
     }
   }, [id]);
 
+
   useEffect(() => {
     fetchJob();
     if (isAuthenticated) {
@@ -49,27 +56,46 @@ console.log(job)
     }
   }, [id, fetchJob, checkApplicationStatus, isAuthenticated]);
 
-  
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden && showApplyModal) {
+        // User returned to the tab after opening external link
+        setShowApplyModal(false);
+        setShowConfirmationModal(true);
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [showApplyModal]);
 
 
-
-  const handleApply = async () => {
+  // Opens external link and waits for user return
+  const handleApply = () => {
     if (!isAuthenticated) {
       toast.error('Please login to apply');
       navigate('/login');
       return;
     }
 
+    // Open external application link
+    window.open(job.applyLink, '_blank');
+    
+    // Modal stays open, confirmation will show when user returns
+  };
+
+
+  //Handle confirmation YES
+  const handleConfirmYes = async () => {
     setApplying(true);
     try {
-      //  i wamt to redirect on a new page after on application link job.applyLink
-      window.open(job.applyLink, '_blank');
-
-
       await api.post(`/jobs/${id}/apply`, { coverLetter });
       toast.success('Application submitted successfully!');
       setHasApplied(true);
-      setShowApplyModal(false);
+      setShowConfirmationModal(false);
       setCoverLetter('');
     } catch (error) {
       toast.error(error.response?.data?.message || 'Application failed');
@@ -78,9 +104,19 @@ console.log(job)
     }
   };
 
+
+  // Handle confirmation NO
+  const handleConfirmNo = () => {
+    setShowConfirmationModal(false);
+    setCoverLetter('');
+    toast.info('Application not recorded');
+  };
+
+
   if (loading) {
     return <Loader fullScreen />;
   }
+
 
   if (!job) {
     return (
@@ -93,6 +129,7 @@ console.log(job)
     );
   }
 
+
   const formatSalary = () => {
     if (job.type === 'Job' && job.salary?.min && job.salary?.max) {
       return `₹${job.salary.min / 1000}k - ₹${job.salary.max / 1000}k per year`;
@@ -102,6 +139,7 @@ console.log(job)
     }
     return 'Not disclosed';
   };
+
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-8">
@@ -113,6 +151,7 @@ console.log(job)
         <ArrowLeft className="w-5 h-5" />
         <span>Back to Jobs</span>
       </button>
+
 
       <div className="bg-white rounded-lg shadow-md p-8">
         {/* Header */}
@@ -144,6 +183,7 @@ console.log(job)
             </div>
           </div>
 
+
           {hasApplied ? (
             <button disabled className="btn-secondary opacity-50 cursor-not-allowed">
               Already Applied
@@ -159,6 +199,7 @@ console.log(job)
           )}
         </div>
 
+
         {/* Key Info */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8 p-4 bg-gray-50 rounded-lg">
           <div className="flex items-center space-x-3">
@@ -169,6 +210,7 @@ console.log(job)
             </div>
           </div>
 
+
           <div className="flex items-center space-x-3">
             <DollarSign className="w-5 h-5 text-gray-600" />
             <div>
@@ -178,6 +220,7 @@ console.log(job)
               <p className="font-medium text-gray-900">{formatSalary()}</p>
             </div>
           </div>
+
 
           <div className="flex items-center space-x-3">
             <Calendar className="w-5 h-5 text-gray-600" />
@@ -190,11 +233,13 @@ console.log(job)
           </div>
         </div>
 
+
         {/* Description */}
         <div className="mb-8">
           <h2 className="text-xl font-bold text-gray-900 mb-4">Job Description</h2>
           <p className="text-gray-700 whitespace-pre-line">{job.description}</p>
         </div>
+
 
         {/* Skills Required */}
         {job.skills && job.skills.length > 0 && (
@@ -212,6 +257,7 @@ console.log(job)
             </div>
           </div>
         )}
+
 
         {/* Eligibility */}
         {job.eligibility && (
@@ -251,6 +297,7 @@ console.log(job)
           </div>
         )}
 
+
         {/* Duration */}
         {job.duration && (
           <div className="mb-8">
@@ -264,6 +311,7 @@ console.log(job)
           </div>
         )}
 
+
         {/* Stats */}
         <div className="flex items-center space-x-6 pt-6 border-t border-gray-200">
           <div className="flex items-center space-x-2 text-gray-600">
@@ -276,6 +324,7 @@ console.log(job)
           </div>
         </div>
       </div>
+
 
       {/* Apply Modal */}
       {showApplyModal && (
@@ -300,26 +349,72 @@ console.log(job)
               </p>
             </div>
 
+
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
               <p className="text-sm text-blue-800">
-                🔗 You'll be redirected to the company's application page after submitting.
+                🔗 You'll be redirected to the company's application page after clicking Submit.
+              </p>
+            </div>
+
+
+            <div className="flex space-x-4">
+              <button
+                onClick={handleApply}
+                className="flex-1 btn-primary"
+              >
+                Submit Application
+              </button>
+              <button
+                onClick={() => {
+                  setShowApplyModal(false);
+                  setCoverLetter('');
+                }}
+                className="flex-1 btn-secondary"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+
+      {/*Confirmation Modal - Shows when user returns */}
+      {showConfirmationModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-8 max-w-md w-full">
+            <div className="text-center mb-6">
+              <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <ExternalLink className="w-8 h-8 text-blue-600" />
+              </div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-2">
+                Application Confirmation
+              </h3>
+              <p className="text-gray-600">
+                Have you completed your application for <span className="font-semibold">{job.title}</span> at <span className="font-semibold">{job.company}</span>?
+              </p>
+            </div>
+
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+              <p className="text-sm text-yellow-800">
+                ⚠️ This helps us track your application status. Click "Yes" only if you've submitted your application on the company's website.
               </p>
             </div>
 
             <div className="flex space-x-4">
               <button
-                onClick={handleApply}
+                onClick={handleConfirmYes}
                 disabled={applying}
                 className="flex-1 btn-primary disabled:opacity-50"
               >
-                {applying ? 'Submitting...' : 'Submit Application'}
+                {applying ? 'Recording...' : 'Yes, I Applied'}
               </button>
               <button
-                onClick={() => setShowApplyModal(false)}
+                onClick={handleConfirmNo}
                 className="flex-1 btn-secondary"
                 disabled={applying}
               >
-                Cancel
+                No, Not Yet
               </button>
             </div>
           </div>
@@ -328,5 +423,6 @@ console.log(job)
     </div>
   );
 };
+
 
 export default JobDetails;
