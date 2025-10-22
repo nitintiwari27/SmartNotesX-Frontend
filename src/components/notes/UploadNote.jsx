@@ -177,7 +177,7 @@ const UploadNote = () => {
                     Click to upload or drag and drop
                   </p>
                   <p className="text-sm text-gray-500">
-                    PDF, DOCX, DOC, JPG, PNG (Max 20MB)
+                    PDF, DOCX, DOC, JPG, PNG (Max 10MB)
                   </p>
                 </label>
               </div>
