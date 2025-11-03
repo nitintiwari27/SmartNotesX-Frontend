@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../api/axios';
-import JobCard from '../components/jobs/jobcard';
+import JobCard from '../components/jobs/JobCard';
 import Loader from '../components/common/Loader';
 import { Briefcase, Search, Filter, Plus } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
